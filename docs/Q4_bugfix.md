@@ -1,32 +1,24 @@
-# Q4: Troubleshoot & Explain
+# Analisis & Penjelasan Perbaikan Bug (Q4)
 
-## The Buggy Code
+## Ringkasan Masalah
 
-```javascript
-function getTotalUsageMB(records) {
-  return records.reduce((total, record) => {
-    total += record.dataUsageMB;
-  });
-}
-```
+Pada fungsi `getTotalUsageMB`, tujuan utama kode adalah menghitung total penggunaan data dalam megabyte (MB) dari sekumpulan data pemakaian pelanggan menggunakan metode `Array.prototype.reduce()`. Namun, fungsi tersebut mengalami kegagalan dan menghasilkan nilai `NaN` (Not a Number) karena terdapat kesalahan logika dasar pada penulisan fungsi callback serta ketidakberadaan nilai awal akumulator.
 
 ---
 
-## Root Cause
+## Analisis Akar Penyebab Bug
 
-The bug has **two issues**:
+Akar penyebab utama dari bug ini terletak pada dua hal. Pertama, fungsi panah (*arrow function*) di dalam callback `.reduce()` ditulis menggunakan kurung kurawal `{ }` yang membentuk *block body*. Pada penulisan *block body*, JavaScript tidak mengembalikan nilai secara otomatis. Karena pengembang lupa menambahkan perintah `return`, callback tersebut selalu mengembalikan nilai `undefined`. Akibatnya, pada iterasi kedua dan seterusnya, variabel akumulator `total` bernilai `undefined`, sehingga operasi penjumlahan `undefined += record.dataUsageMB` secara matematis menghasilkan nilai `NaN`.
 
-### Issue 1: Missing `return` statement inside the `reduce` callback
-
-The arrow function body uses curly braces `{}`, making it a **block body**. In a block body, `return` is **not** implicit — you must explicitly `return` a value. Because the callback never returns anything, it implicitly returns `undefined`. On the next iteration, `total` becomes `undefined`, and `undefined += number` produces `NaN`. The final result is **`NaN`**.
-
-### Issue 2: Missing initial value for `reduce`
-
-When no initial value (second argument to `reduce`) is provided, `reduce` uses the **first element of the array** as the initial accumulator. This means `total` starts as the first **record object** — not a number — which immediately causes incorrect behavior (`[object Object]` + number = string concatenation or `NaN`).
+Masalah kedua adalah ketiadaan nilai awal (*initial value*) sebagai argumen kedua pada fungsi `.reduce()`. Ketika nilai awal tidak ditentukan, JavaScript secara otomatis menjadikan elemen pertama dari array `records` sebagai nilai awal variabel `total`. Karena elemen pertama berupa objek record (misalnya `{ subscriberId: 'SUB01', dataUsageMB: 1500 }`), operasi penjumlahan di iterasi awal menjadi tidak valid karena mencoba menjumlahkan objek dengan angka. Selain itu, kondisi ini juga akan menyebabkan aplikasi mengalami *crash* apabila array `records` yang dimasukkan dalam keadaan kosong.
 
 ---
 
-## The Fix
+## Solusi & Kode Perbaikan
+
+Untuk memperbaiki bug ini, kita perlu memastikan callback mengembalikan hasil penjumlahan pada setiap iterasi dan memberikan angka `0` sebagai nilai awal akumulator. 
+
+Penulisan dapat dilakukan secara eksplisit dengan menambahkan perintah `return` dan argumen `, 0` sebagai berikut:
 
 ```javascript
 function getTotalUsageMB(records) {
@@ -36,7 +28,7 @@ function getTotalUsageMB(records) {
 }
 ```
 
-Or more concisely with an implicit return (arrow function without curly braces):
+Atau, dapat ditulis dengan sintaks yang lebih ringkas menggunakan *implicit return* tanpa kurung kurawal:
 
 ```javascript
 function getTotalUsageMB(records) {
@@ -44,27 +36,12 @@ function getTotalUsageMB(records) {
 }
 ```
 
-### What changed:
-1. **Added `return total + record.dataUsageMB;`** — ensures each iteration returns the updated accumulator to the next iteration.
-2. **Added `, 0` as the initial value** — ensures the accumulator starts as the number `0`, not as the first array element (which is an object).
+Dengan perubahan ini, akumulator diawali dari angka `0`, dan setiap iterasi dengan benar menambahkan `dataUsageMB` ke dalam `total` serta meneruskan hasilnya ke iterasi berikutnya hingga diperoleh total penggunaan data yang akurat.
 
 ---
 
-## Why It Broke
+## Strategi Pencegahan di Masa Depan
 
-JavaScript's `Array.prototype.reduce()` works by passing the **return value** of each callback invocation as the `total` (accumulator) for the next invocation. If the callback does not return a value, `total` becomes `undefined` on the second iteration, and all subsequent additions produce `NaN`.
+Untuk mencegah munculnya bug serupa di kemudian hari, tim pengembang disarankan menerapkan beberapa langkah preventif. Pertama, mengintegrasikan alat analisis kode statis seperti **ESLint** dengan mengaktifkan aturan `array-callback-return`, sehingga editor akan langsung memberi peringatan jika terdapat fungsi `.reduce()`, `.map()`, atau `.filter()` yang lupa mengembalikan nilai.
 
-Additionally, without an explicit initial value, `reduce` treats `records[0]` (an object like `{ dataUsageMB: 1500, ... }`) as the starting accumulator, which is semantically wrong for a numeric summation.
-
----
-
-## Prevention Strategies
-
-| Strategy | Description |
-|---|---|
-| **Lint Rules** | Use ESLint with `array-callback-return` rule enabled. It flags `reduce`/`map`/`filter` callbacks that don't return a value. |
-| **Always provide an initial value** | Make it a team convention to always pass the second argument to `.reduce()`. This avoids bugs with empty arrays (which throw `TypeError` without an initial value) and incorrect accumulator types. |
-| **Use concise arrow syntax for one-liners** | `(total, record) => total + record.dataUsageMB` — the implicit return makes it impossible to forget `return`. |
-| **TypeScript** | TypeScript would flag the missing return via type inference: the callback returns `void` but `reduce<number>` expects `number`. |
-| **Unit Tests** | Write test cases covering edge cases: empty arrays, single-element arrays, and multi-element arrays. A test asserting `getTotalUsageMB([{dataUsageMB:10},{dataUsageMB:20}]) === 30` would immediately catch this bug. |
-| **Code Review** | Reviewers should pay special attention to `.reduce()` calls — it's the most commonly misused array method. |
+Kedua, mewajibkan penggunaan **TypeScript** atau penetapan standar koding yang selalu menentukan *initial value* pada fungsi `.reduce()`. Langkah ini memastikan kejelasan tipe data sejak tahap kompilasi dan mencegah kesalahan saat memproses array kosong. Terakhir, menerapkan pengujian unit (**Unit Testing**) menggunakan framework seperti Jest untuk menguji fungsi penjumlahan pada berbagai skenario masukan, seperti array kosong, array tunggal, maupun array dengan banyak data.
