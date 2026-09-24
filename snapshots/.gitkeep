@@ -1,0 +1,2 @@
+// Placeholder to ensure snapshots directory exists in git
+// CSV snapshot files will be saved here by the cron job

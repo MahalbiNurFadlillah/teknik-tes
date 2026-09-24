@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscriber Usage Analytics & Dashboard</title>
+
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --secondary: #06b6d4;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #10b981;
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      color: white;
+      padding: 24px 32px;
+      box-shadow: 0 4px 20px rgba(49, 46, 129, 0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      opacity: 0.75;
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Main Container Layout */
+    .container {
+      max-width: 1400px;
+      margin: 32px auto;
+      padding: 0 24px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Metric KPI Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .kpi-info h3 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .kpi-info .value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .kpi-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .icon-blue {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+
+    .icon-green {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .icon-purple {
+      background: #ede9fe;
+      color: #7c3aed;
+    }
+
+    .icon-amber {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    /* Dashboard Main Content Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 28px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-dark);
+    }
+
+    .card-title i {
+      color: var(--primary);
+    }
+
+    /* Form Design */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px 12px 42px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #f8fafc;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(6px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-outline {
+      background: white;
+      border: 1.5px solid var(--border);
+      color: var(--text-dark);
+    }
+
+    .btn-outline:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    /* Data Table Section */
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 14px 10px 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    thead {
+      background: #f1f5f9;
+    }
+
+    th {
+      padding: 14px 18px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      color: var(--text-dark);
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .badge-sub {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      border-radius: 20px;
+      font-size: 0.82rem;
+    }
+
+    .action-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-delete {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    .btn-delete:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      color: #cbd5e1;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+    }
+
+    .toast {
+      background: white;
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.success {
+      border-left-color: var(--success);
+    }
+
+    .toast.error {
+      border-left-color: var(--danger);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      background: white;
+      margin-top: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header Navbar -->
+  <header>
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div>
+          <div class="brand-title">Subscriber Analytics</div>
+          <div class="brand-subtitle">Usage Monitoring & Management System</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="seedData()">
+          <i class="fa-solid fa-seedling"></i> Seed Sample Data
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- KPI Summary Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h3>Total Usage Records</h3>
+          <div class="value" id="kpiTotalRecords">0</div>
+        </div>
+        <div class="kpi-icon icon-blue">
+          <i class="fa-solid fa-database"></i>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h3>Total Data Usage</h3>
+          <div class="value" id="kpiTotalData">0 MB</div>
+        </div>
+        <div class="kpi-icon icon-purple">
+          <i class="fa-solid fa-wifi"></i>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h3>Total Call Minutes</h3>
+          <div class="value" id="kpiTotalCalls">0 Mins</div>
+        </div>
+        <div class="kpi-icon icon-green">
+          <i class="fa-solid fa-phone-volume"></i>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h3>Total SMS Count</h3>
+          <div class="value" id="kpiTotalSMS">0</div>
+        </div>
+        <div class="kpi-icon icon-amber">
+          <i class="fa-solid fa-comment-dots"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid: Form + Chart -->
+    <div class="dashboard-grid">
+
+      <!-- Input Form Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-plus-circle"></i> Input Usage Record
+          </div>
+        </div>
+        <form id="usageForm">
+          <div class="form-group">
+            <label for="subscriberId">Subscriber ID</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-id-card"></i>
+              <input type="text" id="subscriberId" class="form-control" placeholder="e.g. SUB01" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="callMinutes">Call Minutes</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-clock"></i>
+              <input type="number" id="callMinutes" class="form-control" placeholder="e.g. 45" min="0" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="smsCount">SMS Count</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-comments"></i>
+              <input type="number" id="smsCount" class="form-control" placeholder="e.g. 10" min="0" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="dataUsageMB">Data Usage (MB)</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-hard-drive"></i>
+              <input type="number" id="dataUsageMB" class="form-control" placeholder="e.g. 1500" min="0" required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-paper-plane"></i> Submit Usage Record
+          </button>
+        </form>
+      </div>
+
+      <!-- Chart Analytics Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-chart-pie"></i> Usage Distribution per Subscriber
+          </div>
+        </div>
+        <div style="height: 310px; position: relative;">
+          <canvas id="usageChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fa-solid fa-table-list"></i> Recorded Subscriber Usage Data
+        </div>
+        <button class="btn btn-outline" onclick="loadData()">
+          <i class="fa-solid fa-rotate"></i> Refresh
+        </button>
+      </div>
+
+      <div class="table-controls">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="filterInput" placeholder="Filter by Subscriber ID (e.g. SUB01)..."
+            onkeyup="filterRecords()" />
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Subscriber ID</th>
+              <th>Call Minutes</th>
+              <th>SMS Count</th>
+              <th>Data Usage (MB)</th>
+              <th>Recorded At</th>
+              <th style="text-align: center;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody">
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>
+                  <p>Loading usage records...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer>
+    teknis tes mahalbi nur fadlillah
+  </footer>
+
+  <script>
+    const API_URL = '/api/usage';
+    let allRecords = [];
+    let usageChart = null;
+
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+      const color = type === 'success' ? 'var(--success)' : 'var(--danger)';
+
+      toast.innerHTML = `
+        <i class="fa-solid ${icon}" style="color: ${color}; font-size: 1.2rem;"></i>
+        <div>
+          <strong style="display:block; font-size: 0.9rem;">${type === 'success' ? 'Success' : 'Error'}</strong>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">${message}</span>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 50);
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Load Data from API
+    async function loadData() {
+      try {
+        const res = await fetch(API_URL);
+        const result = await res.json();
+
+        if (result.success) {
+          allRecords = result.data;
+          renderTable(allRecords);
+          updateKPIs(allRecords);
+          renderChart(allRecords);
+        }
+      } catch (err) {
+        showToast('Failed to connect to API server', 'error');
+      }
+    }
+
+    // Update KPI Cards
+    function updateKPIs(records) {
+      document.getElementById('kpiTotalRecords').textContent = records.length;
+
+      const totalData = records.reduce((sum, r) => sum + r.dataUsageMB, 0);
+      const totalCalls = records.reduce((sum, r) => sum + r.callMinutes, 0);
+      const totalSMS = records.reduce((sum, r) => sum + r.smsCount, 0);
+
+      document.getElementById('kpiTotalData').textContent = totalData.toLocaleString() + ' MB';
+      document.getElementById('kpiTotalCalls').textContent = totalCalls.toLocaleString() + ' Mins';
+      document.getElementById('kpiTotalSMS').textContent = totalSMS.toLocaleString();
+    }
+
+    // Render Table Rows
+    function renderTable(records) {
+      const tbody = document.getElementById('recordsBody');
+
+      if (records.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>No usage records found</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = records.map(r => `
+        <tr>
+          <td>
+            <span class="badge-sub">
+              <i class="fa-solid fa-user"></i> ${r.subscriberId}
+            </span>
+          </td>
+          <td><strong>${r.callMinutes}</strong> mins</td>
+          <td><strong>${r.smsCount}</strong> sms</td>
+          <td><strong>${r.dataUsageMB.toLocaleString()}</strong> MB</td>
+          <td>${new Date(r.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+          <td style="text-align: center;">
+            <button class="action-btn btn-delete" onclick="deleteRecord('${r.id}', '${r.subscriberId}')" title="Delete Record">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Filter Records in Realtime
+    function filterRecords() {
+      const query = document.getElementById('filterInput').value.toLowerCase().trim();
+      const filtered = allRecords.filter(r => r.subscriberId.toLowerCase().includes(query));
+      renderTable(filtered);
+    }
+
+    // Render Chart.js Analytics
+    function renderChart(records) {
+      const ctx = document.getElementById('usageChart').getContext('2d');
+
+      // Aggregate data per subscriberId
+      const aggregated = {};
+      records.forEach(r => {
+        if (!aggregated[r.subscriberId]) aggregated[r.subscriberId] = 0;
+        aggregated[r.subscriberId] += r.dataUsageMB;
+      });
+
+      const labels = Object.keys(aggregated);
+      const dataValues = Object.values(aggregated);
+
+      if (usageChart) usageChart.destroy();
+
+      usageChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Data Usage (MB)',
+            data: dataValues,
+            backgroundColor: 'rgba(79, 70, 229, 0.85)',
+            borderColor: 'rgba(79, 70, 229, 1)',
+            borderWidth: 2,
+            borderRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { family: 'Plus Jakarta Sans' } }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: 'Plus Jakarta Sans', weight: 'bold' } }
+            }
+          }
+        }
+      });
+    }
+
+    // Submit New Usage Record Form
+    document.getElementById('usageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        subscriberId: document.getElementById('subscriberId').value.trim(),
+        callMinutes: Number(document.getElementById('callMinutes').value),
+        smsCount: Number(document.getElementById('smsCount').value),
+        dataUsageMB: Number(document.getElementById('dataUsageMB').value),
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          showToast(`Usage record created for ${payload.subscriberId}!`, 'success');
+          e.target.reset();
+          loadData();
+        } else {
+          showToast(result.errors ? result.errors.join(', ') : 'Failed to save', 'error');
+        }
+      } catch (err) {
+        showToast('Network error while saving record', 'error');
+      }
+    });
+
+    // Delete Record
+    async function deleteRecord(id, subscriberId) {
+      if (!confirm(`Are you sure you want to delete record for ${subscriberId}?`)) return;
+
+      try {
+        const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+
+        if (result.success) {
+          showToast(`Record for ${subscriberId} deleted`, 'success');
+          loadData();
+        } else {
+          showToast(result.message || 'Failed to delete', 'error');
+        }
+      } catch (err) {
+        showToast('Error deleting record', 'error');
+      }
+    }
+
+    // Seed Sample Data
+    async function seedData() {
+      const sampleRecords = [
+        { subscriberId: 'SUB01', callMinutes: 40, smsCount: 10, dataUsageMB: 1500 },
+        { subscriberId: 'SUB01', callMinutes: 35, smsCount: 8, dataUsageMB: 1200 },
+        { subscriberId: 'SUB02', callMinutes: 90, smsCount: 20, dataUsageMB: 6000 },
+        { subscriberId: 'SUB02', callMinutes: 85, smsCount: 18, dataUsageMB: 5800 },
+        { subscriberId: 'SUB03', callMinutes: 20, smsCount: 5, dataUsageMB: 500 },
+        { subscriberId: 'SUB04', callMinutes: 150, smsCount: 30, dataUsageMB: 9000 },
+        { subscriberId: 'SUB05', callMinutes: 70, smsCount: 15, dataUsageMB: 5000 },
+        { subscriberId: 'SUB06', callMinutes: 25, smsCount: 6, dataUsageMB: 700 },
+      ];
+
+      try {
+        for (const record of sampleRecords) {
+          await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+          });
+        }
+        showToast('Sample data seeded successfully!', 'success');
+        loadData();
+      } catch (err) {
+        showToast('Error seeding sample data', 'error');
+      }
+    }
+
+    // Initial Load
+    loadData();
+  </script>
+</body>
+
+</html>
